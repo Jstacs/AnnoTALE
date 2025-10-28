@@ -23,6 +23,9 @@
 hs_err_pid*
 replay_pid*
 
+# IDE stuff
+.idea/
+
 # Local build artifacts
 build/
 src/dist/

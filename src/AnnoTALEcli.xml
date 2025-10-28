@@ -29,13 +29,11 @@
         <mkdir dir="${classes.dir}"/>
         <mkdir dir="${dist.dir}"/>
 
-        <javac srcdir="${basedir}" destdir="${classes.dir}" includes="**/*.java"
+        <javac srcdir="${basedir}/main/java" destdir="${classes.dir}" includes="**/*.java"
                includeantruntime="false" classpathref="compile.classpath" />
 
-        <copy todir="${classes.dir}/annotale">
-            <fileset dir="${basedir}/annotale">
-                <exclude name="**/*.java"/>
-            </fileset>
+        <copy todir="${classes.dir}">
+            <fileset dir="${basedir}/main/resources"/>
         </copy>
 
         <jar destfile="${dist.dir}/AnnoTALEcli-1.4.1.jar" filesetmanifest="mergewithoutmain" duplicate="preserve">

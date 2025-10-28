@@ -38,7 +38,7 @@ public class Tools {
 		
 		static{
 			try {
-				DEFAULT = new Aligner( Aligner.class.getClassLoader().getResourceAsStream( "annotale/BLOSUM62.txt" ), Translator.DEFAULT.getProteinAlphabet() );
+				DEFAULT = new Aligner( Aligner.class.getClassLoader().getResourceAsStream( "annotale/data/BLOSUM62.txt" ), Translator.DEFAULT.getProteinAlphabet() );
 			} catch ( Exception e ) { }
 		}
 		
@@ -122,7 +122,7 @@ public class Tools {
 		public static Translator DEFAULT;
 		static{
 			try{
-				DEFAULT = new Translator( Translator.class.getClassLoader().getResourceAsStream( "annotale/genetic_code.txt" )  );
+				DEFAULT = new Translator( Translator.class.getClassLoader().getResourceAsStream( "annotale/data/genetic_code.txt" )  );
 			}catch(Exception e){e.printStackTrace();}
 		}
 		

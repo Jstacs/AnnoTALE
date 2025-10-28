@@ -3,10 +3,20 @@
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
     <!--define folder properties-->
-    <property name="repo.root" location="${basedir}/.."/>
-    <property name="lib.dir" location="${repo.root}/lib"/>
-    <property name="jstacs.jar" location="${repo.root}/dist/jstacs-2.5.jar"/>
-    <property name="dir.jarfile" location="${basedir}/dist"/>
+    <property name="project.root" location="${basedir}/.."/>
+    <property name="dist.dir" location="${project.root}/dist"/>
+    <property name="build.dir" location="${project.root}/build"/>
+    <property name="classes.dir" location="${build.dir}/classes"/>
+    <property name="lib.dir" location="${project.root}/lib"/>
+    <property name="jstacs.jar" location="${dist.dir}/jstacs-2.5.jar"/>
+
+    <path id="compile.classpath">
+        <pathelement location="${jstacs.jar}"/>
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
     <target name="create_run_jar">
         <fail message="Required Jstacs jar not found: ${jstacs.jar}">
             <condition>
@@ -15,13 +25,41 @@
                 </not>
             </condition>
         </fail>
-        <mkdir dir="${dir.jarfile}"/>
-        <jar destfile="${dir.jarfile}/AnnoTALEcli-1.4.1.jar" filesetmanifest="mergewithoutmain">
+        <delete dir="${classes.dir}"/>
+        <mkdir dir="${classes.dir}"/>
+        <mkdir dir="${dist.dir}"/>
+
+        <javac srcdir="${basedir}" destdir="${classes.dir}" includes="**/*.java"
+               includeantruntime="false" classpathref="compile.classpath" />
+
+        <copy todir="${classes.dir}/projects/xanthogenomes">
+            <fileset dir="${basedir}">
+                <include name="BLOSUM62.txt"/>
+                <include name="genetic_code.txt"/>
+                <include name="talfinder_obg2_hyp_bg.xml"/>
+            </fileset>
+        </copy>
+        <copy todir="${classes.dir}/projects/xanthogenomes/data">
+            <fileset dir="${basedir}/data">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+        <copy todir="${classes.dir}/projects/xanthogenomes/tools">
+            <fileset dir="${basedir}/tools">
+                <include name="*.txt"/>
+                <include name="*.png"/>
+                <include name="*.ico"/>
+                <include name="*.icns"/>
+            </fileset>
+        </copy>
+
+        <jar destfile="${dist.dir}/AnnoTALEcli-1.4.1.jar" filesetmanifest="mergewithoutmain" duplicate="preserve">
             <manifest>
                 <attribute name="Main-Class" value="projects.xanthogenomes.AnnoTALEcli"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
-            <zipfileset excludes="META-INF/*.SF,META-INF/MANIFEST.MF,**/clusters.xml,lib/**/*.jar,projects/gemoma/**,projects/motifComp/**" src="${jstacs.jar}"/>
+            <fileset dir="${classes.dir}"/>
+            <zipfileset excludes="META-INF/*.SF,META-INF/MANIFEST.MF,**/clusters.xml,lib/**/*.jar,projects/gemoma/**,projects/motifComp/**,projects/xanthogenomes/**" src="${jstacs.jar}"/>
             <zipfileset excludes="META-INF/*.SF" src="${lib.dir}/numericalMethods.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${lib.dir}/RClient-0.6.7.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${lib.dir}/ssj/colt-1.2.0.jar"/>

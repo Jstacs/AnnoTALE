@@ -32,34 +32,19 @@
         <javac srcdir="${basedir}" destdir="${classes.dir}" includes="**/*.java"
                includeantruntime="false" classpathref="compile.classpath" />
 
-        <copy todir="${classes.dir}/projects/xanthogenomes">
-            <fileset dir="${basedir}">
-                <include name="BLOSUM62.txt"/>
-                <include name="genetic_code.txt"/>
-                <include name="talfinder_obg2_hyp_bg.xml"/>
-            </fileset>
-        </copy>
-        <copy todir="${classes.dir}/projects/xanthogenomes/data">
-            <fileset dir="${basedir}/data">
-                <include name="**/*"/>
-            </fileset>
-        </copy>
-        <copy todir="${classes.dir}/projects/xanthogenomes/tools">
-            <fileset dir="${basedir}/tools">
-                <include name="*.txt"/>
-                <include name="*.png"/>
-                <include name="*.ico"/>
-                <include name="*.icns"/>
+        <copy todir="${classes.dir}/annotale">
+            <fileset dir="${basedir}/annotale">
+                <exclude name="**/*.java"/>
             </fileset>
         </copy>
 
         <jar destfile="${dist.dir}/AnnoTALEcli-1.4.1.jar" filesetmanifest="mergewithoutmain" duplicate="preserve">
             <manifest>
-                <attribute name="Main-Class" value="projects.xanthogenomes.AnnoTALEcli"/>
+                <attribute name="Main-Class" value="annotale.AnnoTALEcli"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="${classes.dir}"/>
-            <zipfileset excludes="META-INF/*.SF,META-INF/MANIFEST.MF,**/clusters.xml,lib/**/*.jar,projects/gemoma/**,projects/motifComp/**,projects/xanthogenomes/**" src="${jstacs.jar}"/>
+            <zipfileset excludes="META-INF/*.SF,META-INF/MANIFEST.MF,**/clusters.xml,lib/**/*.jar,projects/gemoma/**,projects/motifComp/**,annotale/**,projects/xanthogenomes/**" src="${jstacs.jar}"/>
             <zipfileset excludes="META-INF/*.SF" src="${lib.dir}/numericalMethods.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${lib.dir}/RClient-0.6.7.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${lib.dir}/ssj/colt-1.2.0.jar"/>

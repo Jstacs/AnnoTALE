@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Batch-installs bundled third-party jars into the project-local maven repo. The script:
-#  - Gather the jars in dist/ and lib/
+#  - Gather the jars in lib/
 #  - Skip anything already present (and newer) in .m2repo
 #  - Emit temporary POM with install executions for the rest
 #  - Let a single mvn run do the installs
@@ -80,8 +80,8 @@ install_jar() { # schedule jar if missing/old
   append_install_execution "$abs_file" "$group" "$artifact" "$version"
 }
 
-# Core Jstacs dependency in dist/
-install_jar "dist/jstacs-2.5.jar" "de.jstacs" "jstacs" "2.5"
+# Core Jstacs dependency alongside other libs
+install_jar "lib/jstacs-2.5.jar" "de.jstacs" "jstacs" "2.5"
 
 # Root lib directory jars
 install_jar "lib/BigWig.jar" "local" "BigWig" "1.0"

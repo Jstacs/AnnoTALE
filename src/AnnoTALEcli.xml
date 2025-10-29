@@ -8,7 +8,7 @@
     <property name="build.dir" location="${project.root}/build"/>
     <property name="classes.dir" location="${build.dir}/classes"/>
     <property name="lib.dir" location="${project.root}/lib"/>
-    <property name="jstacs.jar" location="${dist.dir}/jstacs-2.5.jar"/>
+    <property name="jstacs.jar" location="${lib.dir}/jstacs-2.5.jar"/>
 
     <path id="compile.classpath">
         <pathelement location="${jstacs.jar}"/>

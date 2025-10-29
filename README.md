@@ -15,8 +15,7 @@ AnnoTALE is a command-line toolkit for analysing transcription activator-like ef
 
 - `src/main/java` -- Java sources under the `annotale` package
 - `src/main/resources` -- runtime assets (TALE HMMs, help text, icons)
-- `lib/` -- bundled third-party jars
-- `dist/jstacs-2.5.jar` -- Jstacs dependency
+- `lib/` -- bundled third-party jars (including `jstacs-2.5.jar`)
 - `scripts/install-local-libs.sh` -- helper that installs all lib jars into a project-local maven repository (`.m2repo`)
 
 ## Building the CLI jar
@@ -26,7 +25,7 @@ Because many dependencies are shipped as local jars, install them into the proje
 ```bash
 # from the project root
 rm -rf .m2repo target          # optional: start from a clean slate
-scripts/install-local-libs.sh  # installs dist/ and lib/** jars into .m2repo
+scripts/install-local-libs.sh  # installs lib/** jars into .m2repo
 mvn package
 ```
 
@@ -36,7 +35,7 @@ The build produces `target/AnnoTALEcli-1.4.1.jar`. Verify it with:
 java -jar target/AnnoTALEcli-1.4.1.jar --help
 ```
 
-If the install script is skipped after wiping `.m2repo`, Maven will fail while trying to resolve the `local:*` dependencies from Maven Central. Re-run `scripts/install-local-libs.sh` whenever `.m2repo` is cleaned or jars are added under `lib/` or `dist/`. The repository is configured (via `.mvn/maven.config`) to use `.m2repo` automatically for every Maven invocation.
+If the install script is skipped after wiping `.m2repo`, Maven will fail while trying to resolve the `local:*` dependencies from Maven Central. Re-run `scripts/install-local-libs.sh` whenever `.m2repo` is cleaned or jars are added under `lib/`. The repository is configured (via `.mvn/maven.config`) to use `.m2repo` automatically for every Maven invocation.
 
 ## Legacy Ant build
 

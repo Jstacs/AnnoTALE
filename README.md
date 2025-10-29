@@ -1,21 +1,23 @@
 # AnnoTALE
 
+<img src="src/main/resources/annotale/tools/AnnoTALE.png" height="165" width="200">
+
 AnnoTALE is a command-line toolkit for analysing transcription activator-like effector (TALE) proteins.
 
 ## Prerequisites
 
-- Java 8 (sources target 1.8)
+- Java 8
 - Apache Maven 3.6+
 
-- Maven downloads standard plugins from Maven Central, so ensure network access for the first build.
+- Maven downloads standard plugins from Maven Central: ensure network access for the first build.
 
 ## Repository layout
 
 - `src/main/java` -- Java sources under the `annotale` package
 - `src/main/resources` -- runtime assets (TALE HMMs, help text, icons)
-- `lib/`, `lib/ssj/`, `lib/xml-commons/` -- bundled third-party jars
-- `dist/jstacs-2.5.jar` -- Jstacs dependency required by the CLI
-- `scripts/install-local-libs.sh` -- helper that installs all lib jars into a project-local Maven repository (`.m2repo`)
+- `lib/` -- bundled third-party jars
+- `dist/jstacs-2.5.jar` -- Jstacs dependency
+- `scripts/install-local-libs.sh` -- helper that installs all lib jars into a project-local maven repository (`.m2repo`)
 
 ## Building the CLI jar
 
@@ -39,3 +41,7 @@ If the install script is skipped after wiping `.m2repo`, Maven will fail while t
 ## Legacy Ant build
 
 The original ant task still lives at `src/AnnoTALEcli.xml`. It rebuilds the same shaded jar into `dist/AnnoTALEcli-1.4.1.jar`.
+
+## Licensing information
+
+AnnoTALE is free software: you can redistribute it and/or modify under the terms of the GNU General Public License version 3 or (at your option) any later version as published by the Free Software Foundation.

@@ -10,7 +10,7 @@ set -euo pipefail
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 dest_repo="${MAVEN_REPO_DIR:-${project_root}/.m2repo}"
 
-tmpdir="$(mktemp -d)"
+tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t install-local-libs)"
 trap 'rm -rf "$tmpdir"' EXIT
 
 pom="${tmpdir}/install-local-libs.pom"

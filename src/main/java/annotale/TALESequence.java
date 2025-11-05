@@ -7,75 +7,75 @@ import de.jstacs.data.sequences.Sequence;
 
 public class TALESequence extends Sequence<TALE> {
 
-	TALE internal;
-	
-	public TALESequence(TALE tale){
-		super(tale.getRvdSequence().getAlphabetContainer(),null);
-		this.internal = tale;
-	}
+    TALE internal;
 
-	public TALE getTALE(){
-		return internal;
-	}
-	
-	@Override
-	public double continuousVal( int pos ) {
-		return internal.getRvdSequence().continuousVal( pos );
-	}
+    public TALESequence(TALE tale) {
+        super(tale.getRvdSequence().getAlphabetContainer(), null);
+        this.internal = tale;
+    }
 
-	@Override
-	public int discreteVal( int pos ) {
-		return internal.getRvdSequence().discreteVal( pos );
-	}
+    public TALE getTALE() {
+        return internal;
+    }
 
-	@Override
-	protected Sequence flatCloneWithoutAnnotation() {
-		return null;
-	}
+    @Override
+    public double continuousVal(int pos) {
+        return internal.getRvdSequence().continuousVal(pos);
+    }
 
-	@Override
-	public int getLength() {
-		return internal.getNumberOfRepeats();
-	}
+    @Override
+    public int discreteVal(int pos) {
+        return internal.getRvdSequence().discreteVal(pos);
+    }
 
-	@Override
-	protected int compareTo( TALE t1, TALE t2 ) {
-		return 0;
-	}
+    @Override
+    protected Sequence flatCloneWithoutAnnotation() {
+        return null;
+    }
 
-	@Override
-	protected Object getEmptyRepresentation() {
-		return null;
-	}
+    @Override
+    public int getLength() {
+        return internal.getNumberOfRepeats();
+    }
 
-	@Override
-	protected void addToRepresentation( Object representation, int pos, String delim ) {
-		
-	}
+    @Override
+    protected int compareTo(TALE t1, TALE t2) {
+        return 0;
+    }
 
-	@Override
-	protected String getStringRepresentation( Object representation ) {
-		return "";
-	}
+    @Override
+    protected Object getEmptyRepresentation() {
+        return null;
+    }
 
-	@Override
-	protected int hashCodeForPos( int pos ) {
-		return 0;
-	}
+    @Override
+    protected void addToRepresentation(Object representation, int pos, String delim) {
 
-	@Override
-	public boolean isMultiDimensional() {
-		return false;
-	}
+    }
 
-	@Override
-	public TALE getEmptyContainer() {
-		return null;
-	}
+    @Override
+    protected String getStringRepresentation(Object representation) {
+        return "";
+    }
 
-	@Override
-	public void fillContainer( TALE container, int pos ) {
+    @Override
+    protected int hashCodeForPos(int pos) {
+        return 0;
+    }
 
-	}
+    @Override
+    public boolean isMultiDimensional() {
+        return false;
+    }
+
+    @Override
+    public TALE getEmptyContainer() {
+        return null;
+    }
+
+    @Override
+    public void fillContainer(TALE container, int pos) {
+
+    }
 
 }

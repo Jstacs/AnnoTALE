@@ -1,4 +1,5 @@
 package annotale;
+
 import de.jstacs.tools.JstacsTool;
 import de.jstacs.tools.ui.cli.CLI;
 import projects.tals.prediction.QuickTBSPredictionTool;
@@ -14,28 +15,27 @@ import annotale.tools.TALEComparisonTool;
 import annotale.tools.TALEPredictionTool;
 
 
-
 public class AnnoTALEcli {
 
-	public static void main( String[] args ) throws Exception {
-		
-		JstacsTool[] tools = new JstacsTool[]{
-				new TALEPredictionTool(),
-				new TALEAnalysisTool(), 
-				new ClassBuilderTool(), 
-				new LoadAndViewClassesTool(), 
-				new ClassAssignmentTool(), 
-				new RenameTool(), 
-				new PredictAndIntersectTargetsTool(),
-                new ClassPresenceTool(),
-                new TALEComparisonTool(),
-                new QuickTBSPredictionTool(),
-                new DerTALE()};
+    public static void main(String[] args) throws Exception {
 
-		CLI cli = new CLI( tools );
-		
-		cli.run( args );
+        JstacsTool[] tools = new JstacsTool[]{
+              new TALEPredictionTool(),
+              new TALEAnalysisTool(),
+              new ClassBuilderTool(),
+              new LoadAndViewClassesTool(),
+              new ClassAssignmentTool(),
+              new RenameTool(),
+              new PredictAndIntersectTargetsTool(),
+              new ClassPresenceTool(),
+              new TALEComparisonTool(),
+              new QuickTBSPredictionTool(),
+              new DerTALE()};
 
-	}
+        CLI cli = new CLI(tools);
+
+        cli.run(args);
+
+    }
 
 }

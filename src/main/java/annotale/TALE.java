@@ -57,7 +57,7 @@ public class TALE implements Storable {
 
 
         public Repeat(StringBuffer xml)
-              throws NonParsableException, IllegalArgumentException, WrongAlphabetException {
+                throws NonParsableException, IllegalArgumentException, WrongAlphabetException {
             xml = XMLParser.extractForTag(xml, "Repeat");
             repeat = XMLParser.extractSequencesWithTags(xml, "repeat")[0];
             rvd = (String) XMLParser.extractObjectForTags(xml, "rvd");
@@ -96,7 +96,7 @@ public class TALE implements Storable {
 
         public Type getType() {
             if (this.repeat != null && this.repeat.getAlphabetContainer()
-                  .checkConsistency(Translator.DEFAULT.getProteinAlphabet())) {
+                    .checkConsistency(Translator.DEFAULT.getProteinAlphabet())) {
                 int expected = rvd.endsWith("*") ? 33 : 34;
                 int diff = repeat.getLength() - expected;
                 if (diff == 0) {
@@ -129,9 +129,9 @@ public class TALE implements Storable {
 
 
         private int[] getRVDIndexAndLength(Sequence consensus)
-              throws OperationNotSupportedException {
+                throws OperationNotSupportedException {
             PairwiseStringAlignment al = Aligner.DEFAULT.align(repeat.reverse(),
-                  consensus.reverse(), AlignmentType.GLOBAL);
+                    consensus.reverse(), AlignmentType.GLOBAL);
             //System.out.println(al);
             String ca = new StringBuffer(al.getAlignedString(1)).reverse().toString();
             int k = 0, j = 0;
@@ -160,7 +160,7 @@ public class TALE implements Storable {
             int length = 2;
             if (twelve == '-' && thirteen == '-') {
                 throw new RuntimeException(
-                      "Both RVD positions are gaps.\n" + repeat + "\n" + consensus + "\n");
+                        "Both RVD positions are gaps.\n" + repeat + "\n" + consensus + "\n");
             } else if (twelve == '-') {
                 idx++;
                 length = 1;
@@ -172,7 +172,7 @@ public class TALE implements Storable {
         }
 
         private Sequence[] getBlankedRepeats(int[] idl)
-              throws WrongAlphabetException, WrongSequenceTypeException {
+                throws WrongAlphabetException, WrongSequenceTypeException {
             int index = idl[0];
             int length = idl[1];
 
@@ -194,7 +194,7 @@ public class TALE implements Storable {
                 }
 
                 return new Sequence[]{new IntSequence(repeat.getAlphabetContainer(), cont1),
-                      new IntSequence(repeat.getAlphabetContainer(), cont2)};
+                        new IntSequence(repeat.getAlphabetContainer(), cont2)};
             } else {
                 int[] cont1 = new int[index];
                 int[] cont2 = new int[repeat.getLength() - index - 2];
@@ -212,12 +212,12 @@ public class TALE implements Storable {
                 }
 
                 return new Sequence[]{new IntSequence(repeat.getAlphabetContainer(), cont1),
-                      new IntSequence(repeat.getAlphabetContainer(), cont2)};
+                        new IntSequence(repeat.getAlphabetContainer(), cont2)};
             }
         }
 
         public Sequence[] getBlankedRepeats(Sequence consensus)
-              throws WrongAlphabetException, WrongSequenceTypeException, OperationNotSupportedException {
+                throws WrongAlphabetException, WrongSequenceTypeException, OperationNotSupportedException {
             //Sequence repeat = repeats[i].getRepeat();
 
             int[] idl = getRVDIndexAndLength(consensus);
@@ -260,7 +260,7 @@ public class TALE implements Storable {
     private Boolean strand;
 
     void addAnnotation(String strain, String accession, Integer startPos, Integer endPos,
-          Boolean strand) {
+                       Boolean strand) {
         this.strain = strain;
         if (dnaOriginal != null) {
             dnaOriginal.strain = strain;
@@ -324,28 +324,26 @@ public class TALE implements Storable {
 		}*/
         if (startPos != null && endPos != null) {
             buf.append(
-                  "[" + (accession != null ? accession + ": " : "") + startPos + "-" + endPos + ":"
-                        + (strand != null ? (strand ? "+1" : "-1") : "") + "]");
+                    "[" + (accession != null ? accession + ": " : "") + startPos + "-" + endPos + ":"
+                            + (strand != null ? (strand ? "+1" : "-1") : "") + "]");
         }
         return buf.toString();
     }
 
     private String id;
     private Sequence start;
-
-
-    private Repeat[] repeats;
     private Sequence end;
 
+    private Repeat[] repeats;
     private Sequence rvdSequence;
 
     private boolean isNew;
+    private TALE dnaOriginal;
+
 
     public Sequence getRvdSequence() {
         return rvdSequence;
     }
-
-    private TALE dnaOriginal;
 
 
     public TALE getDnaOriginal() {
@@ -364,7 +362,7 @@ public class TALE implements Storable {
     }
 
     public TALE(String id, Sequence rvds, boolean parseId, boolean isNew)
-          throws IllegalArgumentException, WrongAlphabetException {
+            throws IllegalArgumentException, WrongAlphabetException {
         this.id = parseId ? parse(id) : id;
         this.start = this.end = null;
         this.isNew = isNew;
@@ -377,29 +375,29 @@ public class TALE implements Storable {
             this.repeats[i] = new Repeat((Sequence) null);
             this.repeats[i].rvdPosition = -1;
             this.repeats[i].rvd = RVDAlphabetContainer.SINGLETON.getSymbol(i,
-                  rvdSequence.discreteVal(i));
+                    rvdSequence.discreteVal(i));
         }
 
     }
 
     public TALE(String id, Sequence start, Repeat[] repeats, Sequence end)
-          throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
+            throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
         this(true, id, start, repeats, end);
     }
 
     public TALE(boolean parseId, String id, Sequence start, Repeat[] repeats, Sequence end)
-          throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
+            throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
         this(parseId, id, start, repeats, end, false);
     }
 
     public TALE(String id, Sequence start, Repeat[] repeats, Sequence end, boolean isNew)
-          throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
+            throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
         this(true, id, start, repeats, end, isNew);
     }
 
     public TALE(boolean parseId, String id, Sequence start, Repeat[] repeats, Sequence end,
-          boolean isNew)
-          throws WrongAlphabetException, WrongSequenceTypeException, OperationNotSupportedException {
+                boolean isNew)
+            throws WrongAlphabetException, WrongSequenceTypeException, OperationNotSupportedException {
         this.id = parseId ? parse(id) : id;
         this.start = start;
         this.repeats = repeats;
@@ -407,12 +405,12 @@ public class TALE implements Storable {
         this.isNew = isNew;
 
         if (start.getAlphabetContainer()
-              .checkConsistency(Translator.DEFAULT.getProteinAlphabet())) {
+                .checkConsistency(Translator.DEFAULT.getProteinAlphabet())) {
             StringBuffer sb = new StringBuffer();
             for (int i = 0; i < this.repeats.length; i++) {
 
                 int[] idl = repeats[i].getRVDIndexAndLength(
-                      i < repeats.length - 1 ? TALEConsensus.repeat : TALEConsensus.lastRepeat);
+                        i < repeats.length - 1 ? TALEConsensus.repeat : TALEConsensus.lastRepeat);
 
                 this.repeats[i].rvd = repeats[i].getRVD(idl);
                 this.repeats[i].maskedRepeats = repeats[i].getBlankedRepeats(idl);
@@ -462,9 +460,9 @@ public class TALE implements Storable {
             rvdSequence = XMLParser.extractSequencesWithTags(xml, "rvdSequence")[0];
             if (rvdSequence != null) {
                 if (!Singleton.class.isAssignableFrom(
-                      rvdSequence.getAlphabetContainer().getClass())) {
+                        rvdSequence.getAlphabetContainer().getClass())) {
                     this.rvdSequence = Sequence.create(RVDAlphabetContainer.SINGLETON,
-                          rvdSequence.toString("-", 0, rvdSequence.getLength()), "-");
+                            rvdSequence.toString("-", 0, rvdSequence.getLength()), "-");
                 }
             }
             start = XMLParser.extractSequencesWithTags(xml, "start")[0];
@@ -520,7 +518,7 @@ public class TALE implements Storable {
     }
 
     public TALE getTranslatedTALE(Translator t)
-          throws IllegalArgumentException, WrongAlphabetException, WrongSequenceTypeException, EmptyDataSetException, IOException, DoubleSymbolException, OperationNotSupportedException {
+            throws IllegalArgumentException, WrongAlphabetException, WrongSequenceTypeException, EmptyDataSetException, IOException, DoubleSymbolException, OperationNotSupportedException {
 
         Repeat[] trans = new Repeat[repeats.length];
         for (int i = 0; i < repeats.length; i++) {
@@ -565,7 +563,7 @@ public class TALE implements Storable {
 
 
     public Sequence getRVDSequence(Sequence consensus, Sequence lastConsensus)
-          throws IllegalArgumentException, WrongAlphabetException, OperationNotSupportedException {
+            throws IllegalArgumentException, WrongAlphabetException, OperationNotSupportedException {
 
         StringBuffer reps = new StringBuffer();
         for (int i = 0; i < repeats.length; i++) {
@@ -584,7 +582,7 @@ public class TALE implements Storable {
     }
 
     public static TALE[] translateTALEs(TALE[] tales, Translator t)
-          throws IllegalArgumentException, IOException, DoubleSymbolException, WrongAlphabetException, WrongSequenceTypeException, EmptyDataSetException, OperationNotSupportedException {
+            throws IllegalArgumentException, IOException, DoubleSymbolException, WrongAlphabetException, WrongSequenceTypeException, EmptyDataSetException, OperationNotSupportedException {
 
         TALE[] trans = new TALE[tales.length];
         for (int i = 0; i < tales.length; i++) {
@@ -595,7 +593,7 @@ public class TALE implements Storable {
     }
 
     public static TALE[] readTALEs(String startFile, String repeatFile, String endFile)
-          throws IllegalArgumentException, IOException, WrongAlphabetException, OperationNotSupportedException, WrongSequenceTypeException {
+            throws IllegalArgumentException, IOException, WrongAlphabetException, OperationNotSupportedException, WrongSequenceTypeException {
 
         HashMap<String, Sequence> starts = new HashMap<String, Sequence>();
         BufferedReader read = new BufferedReader(new FileReader(startFile));
@@ -671,7 +669,7 @@ public class TALE implements Storable {
 
 
     public Sequence[] getBlankedRepeats(int i, Sequence repeatCons)
-          throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
+            throws OperationNotSupportedException, WrongAlphabetException, WrongSequenceTypeException {
         return repeats[i].getBlankedRepeats(repeatCons);
     }
 
@@ -691,7 +689,7 @@ public class TALE implements Storable {
         Rectangle2D rect = graphics.getFontMetrics().getStringBounds(id, graphics);
         Sequence rvds = getRvdSequence();
         Rectangle2D rect2 = graphics.getFontMetrics()
-              .getStringBounds(rvds.toString("-", 0, rvds.getLength()), graphics);
+                .getStringBounds(rvds.toString("-", 0, rvds.getLength()), graphics);
 
         double h = (rect.getHeight() + rect2.getHeight()) * 1.2;
         double rat = height / h;
@@ -700,11 +698,11 @@ public class TALE implements Storable {
         size *= rat;
 
         graphics.setFont(
-              new Font(graphics.getFont().getFontName(), graphics.getFont().getStyle(), size));
+                new Font(graphics.getFont().getFontName(), graphics.getFont().getStyle(), size));
 
         rect = graphics.getFontMetrics().getStringBounds(id, graphics);
         rect2 = graphics.getFontMetrics()
-              .getStringBounds(rvds.toString("-", 0, rvds.getLength()), graphics);
+                .getStringBounds(rvds.toString("-", 0, rvds.getLength()), graphics);
 
         int w = this.getWidth(graphics, height);
         if (this.isNew) {
@@ -713,9 +711,9 @@ public class TALE implements Storable {
         graphics.drawRect(xoff + margin / 4, yoff, w + margin / 2, height);
 
         graphics.drawString(id, xoff + margin / 2,
-              yoff - margin / 4 + (int) (height / 2.0 - rect.getCenterY()));
+                yoff - margin / 4 + (int) (height / 2.0 - rect.getCenterY()));
         graphics.drawString(rvds.toString("-", 0, rvds.getLength()), xoff + margin / 2,
-              yoff - margin / 4 + (int) (height - rect2.getCenterY()));
+                yoff - margin / 4 + (int) (height - rect2.getCenterY()));
 
     }
 
@@ -725,7 +723,7 @@ public class TALE implements Storable {
         Rectangle2D rect = graphics.getFontMetrics().getStringBounds(id, graphics);
         Sequence rvds = getRvdSequence();
         Rectangle2D rect2 = graphics.getFontMetrics()
-              .getStringBounds(rvds.toString("-", 0, rvds.getLength()), graphics);
+                .getStringBounds(rvds.toString("-", 0, rvds.getLength()), graphics);
 
         double h = (rect.getHeight() + rect2.getHeight()) * 1.2;
         double rat = height / h;
@@ -763,7 +761,7 @@ public class TALE implements Storable {
                     return "---";
                 } else {
                     return dna.getRepeat(repeat).getRepeat().getSubSequence(before + 3, 3)
-                          .toString();
+                            .toString();
                 }
             } else {
                 return null;
@@ -785,12 +783,12 @@ public class TALE implements Storable {
 
     public ResultSet annotationToResultSet() {
         return new ResultSet(new Result[]{
-              new CategoricalResult("ID", "", getId()),
-              new CategoricalResult("Strain", "", strain == null ? "" : strain),
-              new CategoricalResult("Accession", "", accession == null ? "" : accession),
-              new NumericalResult("Start", "", startPos == null ? -1 : startPos),
-              new NumericalResult("End", "", endPos == null ? -1 : endPos),
-              new CategoricalResult("Strand", "", strand == null ? "" : (strand ? "+1" : "-1"))
+                new CategoricalResult("ID", "", getId()),
+                new CategoricalResult("Strain", "", strain == null ? "" : strain),
+                new CategoricalResult("Accession", "", accession == null ? "" : accession),
+                new NumericalResult("Start", "", startPos == null ? -1 : startPos),
+                new NumericalResult("End", "", endPos == null ? -1 : endPos),
+                new CategoricalResult("Strand", "", strand == null ? "" : (strand ? "+1" : "-1"))
         });
     }
 
@@ -807,6 +805,18 @@ public class TALE implements Storable {
 
     public String getAccession() {
         return accession;
+    }
+
+    public Integer getStartPos() {
+        return startPos;
+    }
+
+    public Integer getEndPos() {
+        return endPos;
+    }
+
+    public Boolean getStrand() {
+        return strand;
     }
 
 }

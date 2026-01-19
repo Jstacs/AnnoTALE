@@ -1743,6 +1743,10 @@ public class TALEFamilyBuilder implements Storable {
         return costs;
     }
 
+    public Linkage getLinkage() {
+        return linkage;
+    }
+
     public double getPVal() {
         return pval;
     }

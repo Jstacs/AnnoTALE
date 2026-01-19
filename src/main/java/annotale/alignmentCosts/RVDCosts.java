@@ -79,6 +79,18 @@ public class RVDCosts implements Costs {
         return gap;
     }
 
+    public double getTwelve() {
+        return twelve;
+    }
+
+    public double getThirteen() {
+        return thirteen;
+    }
+
+    public double getBonus() {
+        return bonus;
+    }
+
     @Override
     public StringBuffer toXML() {
         StringBuffer xml = new StringBuffer();

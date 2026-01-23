@@ -37,6 +37,7 @@ import projects.tals.TALgetterDiffSM;
 import annotale.FamilyGroupPlotter;
 import annotale.TALE;
 import annotale.TALEFamilyBuilder;
+import annotale.storage.TALEFamilyBuilderLoader;
 import annotale.TALEFamilyBuilder.TALEFamily;
 
 
@@ -107,8 +108,8 @@ public class LoadAndViewClassesTool implements JstacsTool {
 
             ParameterSet ps = (ParameterSet) sp.getValue();
             protocol.append("Loading class builder...\n");
-            builder = new TALEFamilyBuilder(new StringBuffer(
-                  ((FileParameter) ps.getParameterAt(0)).getFileContents().getContent()));
+            builder = TALEFamilyBuilderLoader.load(
+                  ((FileParameter) ps.getParameterAt(0)).getFileContents());
             protocol.append("...finished.\n\n");
         }
         progress.setCurrent(1.0);

@@ -2,6 +2,7 @@ package annotale;
 
 import annotale.storage.SQLiteSchema;
 import annotale.storage.TaleDao;
+import annotale.storage.ClusterTreeNewick;
 import annotale.alignmentCosts.RVDCosts;
 import de.jstacs.algorithms.alignment.cost.AffineCosts;
 import de.jstacs.algorithms.alignment.cost.Costs;
@@ -22,12 +23,13 @@ public class MigrateXmlToSqlite {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
-            System.err.println("Usage: MigrateXmlToSqlite <class_definitions.xml> <sqlite.db>");
+            System.err.println("Usage: MigrateXmlToSqlite <class_definitions.xml> <sqlite.db> [--wipe]");
             System.exit(1);
         }
 
         String xmlPath = args[0];
         String dbPath = args[1];
+        boolean wipe = args.length > 2 && "--wipe".equalsIgnoreCase(args[2]);
 
         StringBuffer xml;
         try {
@@ -58,15 +60,12 @@ public class MigrateXmlToSqlite {
             }
             conn.setAutoCommit(false);
             SQLiteSchema.ensureSchema(conn);
-            try (Statement st = conn.createStatement()) {
-                st.executeUpdate("DELETE FROM family_member");
-                st.executeUpdate("DELETE FROM family");
-                st.executeUpdate("DELETE FROM analysis_config");
-                st.executeUpdate("DELETE FROM dmat_tale_order");
-                st.executeUpdate("DELETE FROM repeat");
-                st.executeUpdate("DELETE FROM tale");
-                st.executeUpdate("DELETE FROM accession");
-                st.executeUpdate("DELETE FROM strain");
+            if (!wipe && hasExistingData(conn)) {
+                System.err.println("Refusing to overwrite existing database without --wipe.");
+                System.exit(2);
+            }
+            if (wipe) {
+                wipeDatabase(conn);
             }
             TaleDao taleDao = new TaleDao(conn);
             Map<String, Integer> taleIdMap = new HashMap<>();
@@ -75,7 +74,8 @@ public class MigrateXmlToSqlite {
                 taleIdMap.put(tale.getId(), dbId);
             }
             insertFamilies(conn, builder, taleIdMap);
-            insertBuilderState(conn, builder);
+            insertBuilderState(conn, builder, taleIdMap);
+            upsertDataVersion(conn);
             conn.commit();
         }
 
@@ -85,13 +85,15 @@ public class MigrateXmlToSqlite {
     private static void insertFamilies(Connection conn, TALEFamilyBuilder builder, Map<String, Integer> taleIdMap)
           throws Exception {
         try (PreparedStatement familyStmt = conn.prepareStatement(
-                     "INSERT OR REPLACE INTO family(name, member_count, tree_newick) VALUES (?,?,?)");
+                     "INSERT OR REPLACE INTO tale_family(name, member_count, tree_newick) VALUES (?,?,?)");
              PreparedStatement memberStmt = conn.prepareStatement(
-                     "INSERT OR REPLACE INTO family_member(family_id, tale_id) VALUES (?,?)")) {
+                     "INSERT OR REPLACE INTO tale_family_member(family_id, tale_id) VALUES (?,?)")) {
 
             TALEFamilyBuilder.TALEFamily[] families = builder.getFamilies();
             for (TALEFamilyBuilder.TALEFamily family : families) {
-                String newick = family.getTree() == null ? null : family.getTree().toNewick();
+                String newick = family.getTree() == null ? null
+                      : ClusterTreeNewick.toNewickWithTaleIds(
+                            family.getTree(), t -> taleIdMap.get(t.getId()));
                 familyStmt.setString(1, family.getFamilyId());
                 familyStmt.setInt(2, family.getFamilySize());
                 familyStmt.setString(3, newick);
@@ -113,7 +115,8 @@ public class MigrateXmlToSqlite {
         }
     }
 
-    private static void insertBuilderState(Connection conn, TALEFamilyBuilder builder) throws Exception {
+    private static void insertBuilderState(Connection conn, TALEFamilyBuilder builder,
+          Map<String, Integer> taleIdMap) throws Exception {
         try (PreparedStatement ps = conn.prepareStatement(
                      "INSERT OR REPLACE INTO analysis_config(id, alignment_type, cut, extra_gap_open, extra_gap_ext, linkage, pval, "
                            + "cost_affine_open, cost_affine_extend, cost_rvd_gap, cost_rvd_twelve, cost_rvd_thirteen, cost_rvd_bonus, "
@@ -138,22 +141,20 @@ public class MigrateXmlToSqlite {
         }
 
         try (PreparedStatement ps = conn.prepareStatement(
-                     "INSERT OR REPLACE INTO dmat(config_id, data) VALUES (?,?)")) {
-            ps.setString(1, "default");
-            ps.setString(2, extractDmat(builder.toXML()));
+                     "INSERT OR REPLACE INTO dmat(id, data) VALUES (1,?)")) {
+            ps.setString(1, extractDmat(builder.toXML()));
             ps.executeUpdate();
         }
-        insertTaleOrder(conn, "default", taleOrder(builder));
+        insertTaleOrder(conn, taleOrderIds(builder, taleIdMap));
     }
 
-    private static void insertTaleOrder(Connection conn, String configId, String[] order)
+    private static void insertTaleOrder(Connection conn, int[] order)
           throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-              "INSERT OR REPLACE INTO dmat_tale_order(config_id, ordinal, tale_name) VALUES (?,?,?)")) {
+              "INSERT OR REPLACE INTO dmat_tale_order(ordinal, tale_id) VALUES (?,?)")) {
             for (int i = 0; i < order.length; i++) {
-                ps.setString(1, configId);
-                ps.setInt(2, i);
-                ps.setString(3, order[i]);
+                ps.setInt(1, i);
+                ps.setInt(2, order[i]);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -198,13 +199,51 @@ public class MigrateXmlToSqlite {
         return params;
     }
 
-    private static String[] taleOrder(TALEFamilyBuilder builder) {
+    private static int[] taleOrderIds(TALEFamilyBuilder builder, Map<String, Integer> taleIdMap)
+          throws SQLException {
         TALE[] all = builder.getAllTALEs();
-        String[] ids = new String[all.length];
+        int[] ids = new int[all.length];
         for (int i = 0; i < all.length; i++) {
-            ids[i] = all[i].getId();
+            Integer dbId = taleIdMap.get(all[i].getId());
+            if (dbId == null) {
+                throw new SQLException("No tale id mapped for legacy id " + all[i].getId());
+            }
+            ids[i] = dbId;
         }
         return ids;
+    }
+
+    private static void upsertDataVersion(Connection conn) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+              "INSERT OR REPLACE INTO data_version(id, version) VALUES (1,?)")) {
+            ps.setLong(1, System.currentTimeMillis());
+            ps.executeUpdate();
+        }
+    }
+
+    private static boolean hasExistingData(Connection conn) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM tale");
+             java.sql.ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    private static void wipeDatabase(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate("DELETE FROM tale_family_member");
+            st.executeUpdate("DELETE FROM tale_family");
+            st.executeUpdate("DELETE FROM analysis_config");
+            st.executeUpdate("DELETE FROM dmat_tale_order");
+            st.executeUpdate("DELETE FROM repeat");
+            st.executeUpdate("DELETE FROM tale");
+            st.executeUpdate("DELETE FROM assembly");
+            st.executeUpdate("DELETE FROM samples");
+            st.executeUpdate("DELETE FROM taxonomy");
+            st.executeUpdate("DELETE FROM data_version");
+        }
     }
 
     /**

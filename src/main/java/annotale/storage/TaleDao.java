@@ -21,47 +21,51 @@ public class TaleDao {
      * Inserts a TALE and its repeats, returning the synthetic tale id.
      */
     public int insertTale(TALE tale) throws SQLException {
-        int strainId = upsertStrain(tale);
-        Integer accessionId = upsertAccession(tale, strainId);
+        int sampleId = upsertSample(tale);
+        int assemblyId = upsertAssembly(tale, sampleId);
         TALE dnaOriginal = tale.getDnaOriginal();
 
-        int taleId = insertSingleTale(tale, strainId, accessionId, dnaOriginal);
+        int taleId = insertSingleTale(tale, assemblyId, dnaOriginal);
         insertRepeats(taleId, tale.getRepeats());
 
         return taleId;
     }
 
-    private int upsertStrain(TALE tale) throws SQLException {
-        String raw = tale.getStrain();
-        if (raw == null || raw.isEmpty()) {
-            return ensureUnknownStrain();
+    private int upsertSample(TALE tale) throws SQLException {
+        String raw = tale == null ? null : tale.getStrain();
+        if (raw == null || raw.trim().isEmpty()) {
+            raw = "unknown";
         }
-        Integer existing = findStrainIdByName(raw);
+        TaxonParts sp = parseTaxon(raw);
+        int taxonId = upsertTaxonomy(raw, sp);
+        Integer existing = findSampleIdByLegacyName(raw);
         if (existing != null) {
+            updateSampleDetails(existing, sp, taxonId);
             return existing;
         }
         try (PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO strain(name, species, pathovar, isolate, geo_tag, tax_id) VALUES (?,?,?,?,?,?)",
-                     Statement.RETURN_GENERATED_KEYS)) {
+              "INSERT INTO samples(legacy_strain_name, strain_name, geo_tag, collection_date, biosample_id, taxon_id) "
+                    + "VALUES (?,?,?,?,?,?)",
+              Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, raw);
-            TaxonParts sp = parseTaxon(raw);
-            ps.setObject(2, sp == null ? null : sp.species);
-            ps.setObject(3, sp == null ? null : sp.pathovar);
-            ps.setString(4, sp == null ? null : sp.isolate);
+            ps.setString(2, sp == null ? null : sp.strain);
+            ps.setObject(3, null);
+            ps.setObject(4, null);
             ps.setObject(5, null);
-            ps.setObject(6, sp == null ? null : sp.taxId);
+            ps.setInt(6, taxonId);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
-                    throw new SQLException("Failed to retrieve generated strain id for " + raw);
+                    throw new SQLException("Failed to retrieve generated sample id for " + raw);
                 }
                 return rs.getInt(1);
             }
         }
     }
 
-    private Integer findStrainIdByName(String name) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM strain WHERE name=?")) {
+    private Integer findSampleIdByLegacyName(String name) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+              "SELECT id FROM samples WHERE legacy_strain_name=?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -72,40 +76,35 @@ public class TaleDao {
         return null;
     }
 
-    private int ensureUnknownStrain() throws SQLException {
+    private void updateSampleDetails(int sampleId, TaxonParts sp, int taxonId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                     "INSERT OR IGNORE INTO strain(name, isolate) VALUES ('unknown','unknown')")) {
+              "UPDATE samples SET "
+                    + "strain_name=COALESCE(strain_name, ?), "
+                    + "taxon_id=COALESCE(taxon_id, ?) "
+                    + "WHERE id=?")) {
+            ps.setObject(1, sp == null ? null : sp.strain);
+            ps.setInt(2, taxonId);
+            ps.setInt(3, sampleId);
             ps.executeUpdate();
         }
-        try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM strain WHERE name='unknown'")) {
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        }
-        throw new SQLException("Failed to obtain unknown strain id");
     }
 
-    private int insertSingleTale(TALE tale, int strainId, Integer accessionId, TALE dnaOriginal) throws SQLException {
+    private int insertSingleTale(TALE tale, int assemblyId, TALE dnaOriginal) throws SQLException {
         int taleId;
-        NameParts parts = parseName(tale == null ? null : tale.getId());
+        boolean isPseudo = isPseudoName(tale == null ? null : tale.getId());
         try (PreparedStatement ps = conn.prepareStatement(
-              "INSERT INTO tale(name,name_short,name_suffix,is_pseudo,strain_id,accession_id,dna_seq,protein_seq,start_pos,end_pos,strand,is_new) "
-                    + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+              "INSERT INTO tale(legacy_name,dna_seq,protein_seq,start_pos,end_pos,strand,is_new,is_pseudo,assembly_id) "
+                    + "VALUES (?,?,?,?,?,?,?,?,?)",
               Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, tale.getId());
-            ps.setString(2, parts.shortName);
-            ps.setString(3, parts.suffix);
-            ps.setObject(4, parts.isPseudo ? 1 : 0);
-            ps.setObject(5, strainId);
-            ps.setObject(6, accessionId);
-            ps.setString(7, buildDnaSequence(tale, dnaOriginal));
-            ps.setString(8, buildSequenceString(tale));
-            ps.setObject(9, tale.getStartPos());
-            ps.setObject(10, tale.getEndPos());
-            ps.setObject(11, tale.getStrand() == null ? null : (tale.getStrand() ? 1 : -1));
-            ps.setObject(12, tale.isNew());
+            ps.setString(2, buildDnaSequence(tale, dnaOriginal));
+            ps.setString(3, buildSequenceString(tale));
+            ps.setObject(4, tale.getStartPos());
+            ps.setObject(5, tale.getEndPos());
+            ps.setObject(6, tale.getStrand() == null ? null : (tale.getStrand() ? 1 : -1));
+            ps.setObject(7, tale.isNew());
+            ps.setObject(8, isPseudo ? 1 : 0);
+            ps.setObject(9, assemblyId);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
@@ -122,7 +121,7 @@ public class TaleDao {
             return;
         }
         try (PreparedStatement ps = conn.prepareStatement(
-              "INSERT INTO repeat(tale_id, ordinal, rvd, rvd_pos, rvd_len, masked_seq_1, masked_seq_2) "
+              "INSERT INTO repeat(tale_id, repeat_ordinal, rvd, rvd_pos, rvd_len, masked_seq_1, masked_seq_2) "
                     + "VALUES (?,?,?,?,?,?,?)")) {
             for (int i = 0; i < baseRepeats.length; i++) {
                 Repeat base = baseRepeats[i];
@@ -140,23 +139,27 @@ public class TaleDao {
         }
     }
 
-    private Integer upsertAccession(TALE tale, int strainId) throws SQLException {
-        String raw = tale.getAccession();
-        if (raw == null || raw.isEmpty()) {
-            return null;
+    private int upsertAssembly(TALE tale, int sampleId) throws SQLException {
+        String raw = tale == null ? null : tale.getAccession();
+        if (raw == null || raw.trim().isEmpty() || "null".equalsIgnoreCase(raw.trim())) {
+            Integer existing = findLocalAssemblyId(sampleId);
+            if (existing != null) {
+                return existing;
+            }
+            return insertAssembly(null, null, null, sampleId);
         }
         AccessionParts parts = splitAccession(raw);
-        Integer existing = findAccessionId(parts.name, parts.version);
+        Integer existing = findAssemblyIdByAccession(parts.name, parts.version);
         if (existing != null) {
-            updateAccessionStrain(existing, strainId);
+            updateAssemblySample(existing, sampleId);
             return existing;
         }
-        return insertAccession(parts, strainId);
+        return insertAssembly(parts.name, parts.version, null, sampleId);
     }
 
-    private Integer findAccessionId(String name, String version) throws SQLException {
+    private Integer findAssemblyIdByAccession(String name, String version) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-              "SELECT id FROM accession WHERE name=? AND version=?")) {
+              "SELECT id FROM assembly WHERE accession=? AND version=?")) {
             ps.setString(1, name);
             ps.setString(2, version);
             try (ResultSet rs = ps.executeQuery()) {
@@ -168,29 +171,43 @@ public class TaleDao {
         return null;
     }
 
-    private int insertAccession(AccessionParts parts, int strainId) throws SQLException {
+    private Integer findLocalAssemblyId(int sampleId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO accession(name, version, replicon_type, strain_id) VALUES (?,?,?,?)",
+              "SELECT id FROM assembly WHERE sample_id=? AND accession IS NULL")) {
+            ps.setInt(1, sampleId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private int insertAssembly(String accession, String version, String repliconType, int sampleId)
+          throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO assembly(accession, version, replicon_type, sample_id) VALUES (?,?,?,?)",
                      Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, parts.name);
-            ps.setString(2, parts.version);
-            ps.setObject(3, null);
-            ps.setInt(4, strainId);
+            ps.setObject(1, accession);
+            ps.setObject(2, version);
+            ps.setObject(3, repliconType);
+            ps.setInt(4, sampleId);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
-                    throw new SQLException("Failed to retrieve generated accession id for " + parts.name);
+                    throw new SQLException("Failed to retrieve generated assembly id for " + accession);
                 }
                 return rs.getInt(1);
             }
         }
     }
 
-    private void updateAccessionStrain(int accessionId, int strainId) throws SQLException {
+    private void updateAssemblySample(int assemblyId, int sampleId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                     "UPDATE accession SET strain_id=COALESCE(strain_id, ?) WHERE id=?")) {
-            ps.setInt(1, strainId);
-            ps.setInt(2, accessionId);
+                     "UPDATE assembly SET sample_id=COALESCE(sample_id, ?) WHERE id=?")) {
+            ps.setInt(1, sampleId);
+            ps.setInt(2, assemblyId);
             ps.executeUpdate();
         }
     }
@@ -259,25 +276,8 @@ public class TaleDao {
         return masked;
     }
 
-    private NameParts parseName(String raw) {
-        if (raw == null) {
-            return new NameParts(null, null, false);
-        }
-        boolean pseudo = raw.toLowerCase().contains("(pseudo)");
-        String cleaned = raw.replaceAll("(?i)\\s*\\(pseudo\\)\\s*", "").trim();
-        String shortName;
-        String suffix = null;
-        int firstSpace = cleaned.indexOf(' ');
-        if (firstSpace >= 0) {
-            shortName = cleaned.substring(0, firstSpace).trim();
-            suffix = cleaned.substring(firstSpace + 1).trim();
-            if (suffix.isEmpty()) {
-                suffix = null;
-            }
-        } else {
-            shortName = cleaned;
-        }
-        return new NameParts(shortName, suffix, pseudo);
+    private boolean isPseudoName(String raw) {
+        return raw != null && raw.toLowerCase().contains("(pseudo)");
     }
 
     private TaxonParts parseTaxon(String raw) {
@@ -294,30 +294,30 @@ public class TaleDao {
             return null;
         }
 
-        String first = tokens[0].toLowerCase();
-        String species = null;
-        String pathovar = null;
-        String isolate = null;
+            String first = tokens[0].toLowerCase();
+            String species = null;
+            String pathovar = null;
+            String strain = null;
 
         if (first.equals("x") || first.equals("x.") || first.equals("xanthomonas")) {
             if (tokens.length < 2) {
                 return null;
             }
             species = "Xanthomonas " + tokens[1].toLowerCase();
-            if (tokens[1].equalsIgnoreCase("sp.") || tokens[1].equalsIgnoreCase("sp")) {
-                isolate = normalizeIsolateFull(joinTokens(tokens, 2));
-                return new TaxonParts(species, null, null, isolate);
+                if (tokens[1].equalsIgnoreCase("sp.") || tokens[1].equalsIgnoreCase("sp")) {
+                strain = normalizeStrainName(joinTokens(tokens, 2));
+                return new TaxonParts(species, null, strain);
             }
             if (tokens.length >= 4 && isPvToken(tokens[2])) {
                 pathovar = tokens[3].toLowerCase();
-                isolate = normalizeIsolateFull(joinTokens(tokens, 4));
+                strain = normalizeStrainName(joinTokens(tokens, 4));
             } else if (tokens.length >= 3 && tokens[2].matches("[A-Za-z]+")) {
                 pathovar = tokens[2].toLowerCase();
-                isolate = normalizeIsolateFull(joinTokens(tokens, 3));
+                strain = normalizeStrainName(joinTokens(tokens, 3));
             } else {
-                isolate = normalizeIsolateFull(joinTokens(tokens, 2));
+                strain = normalizeStrainName(joinTokens(tokens, 2));
             }
-            return new TaxonParts(species, pathovar, null, isolate);
+            return new TaxonParts(species, pathovar, strain);
         }
 
         AbbrevTaxon abbrev = ABBREV_TAXA.get(first);
@@ -327,11 +327,11 @@ public class TaleDao {
             int pvIndex = findPvIndex(tokens, 1);
             if (pvIndex >= 0 && pvIndex + 1 < tokens.length) {
                 pathovar = tokens[pvIndex + 1].toLowerCase();
-                isolate = normalizeIsolateFull(joinTokens(tokens, pvIndex + 2));
+                strain = normalizeStrainName(joinTokens(tokens, pvIndex + 2));
             } else {
-                isolate = normalizeIsolateFull(joinTokens(tokens, 1));
+                strain = normalizeStrainName(joinTokens(tokens, 1));
             }
-            return new TaxonParts(species, pathovar, null, isolate);
+            return new TaxonParts(species, pathovar, strain);
         }
 
         return null;
@@ -399,7 +399,7 @@ public class TaleDao {
         return sb.length() == 0 ? null : sb.toString();
     }
 
-    private String normalizeIsolateFull(String raw) {
+    private String normalizeStrainName(String raw) {
         if (raw == null) {
             return null;
         }
@@ -407,39 +407,22 @@ public class TaleDao {
         if (trimmed.isEmpty()) {
             return null;
         }
-        String lower = trimmed.toLowerCase();
-        if (lower.startsWith("strain ")) {
-            trimmed = trimmed.substring(7).trim();
-        }
-        if (trimmed.isEmpty()) {
+        String[] tokens = trimmed.split("\\s+");
+        if (tokens.length == 0) {
             return null;
         }
-        return trimmed;
-    }
-
-    private static final class NameParts {
-        final String shortName;
-        final String suffix;
-        final boolean isPseudo;
-
-        private NameParts(String shortName, String suffix, boolean isPseudo) {
-            this.shortName = shortName;
-            this.suffix = suffix;
-            this.isPseudo = isPseudo;
-        }
+        return tokens[tokens.length - 1];
     }
 
     private static final class TaxonParts {
         final String species;
         final String pathovar;
-        final Integer taxId;
-        final String isolate;
+        final String strain;
 
-        private TaxonParts(String species, String pathovar, Integer taxId, String isolate) {
+        private TaxonParts(String species, String pathovar, String strain) {
             this.species = species;
             this.pathovar = pathovar;
-            this.taxId = taxId;
-            this.isolate = isolate;
+            this.strain = strain;
         }
     }
 
@@ -453,4 +436,97 @@ public class TaleDao {
         }
     }
 
+    private int upsertTaxonomy(String raw, TaxonParts sp) throws SQLException {
+        String name = buildTaxonName(raw, sp);
+        String rank = deriveTaxonRank(raw, sp);
+        Integer existing = findTaxonomyId(name, sp);
+        if (existing != null) {
+            return existing;
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+              "INSERT INTO taxonomy(ncbi_tax_id, rank, name, species, pathovar) "
+                    + "VALUES (?,?,?,?,?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+            ps.setObject(1, null);
+            ps.setObject(2, rank);
+            ps.setString(3, name);
+            ps.setObject(4, sp == null ? null : sp.species);
+            ps.setObject(5, sp == null ? null : sp.pathovar);
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (!rs.next()) {
+                    throw new SQLException("Failed to retrieve generated taxonomy id for " + name);
+                }
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    private Integer findTaxonomyId(String name, TaxonParts sp) throws SQLException {
+        if (sp != null && sp.species != null) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                  "SELECT id FROM taxonomy WHERE name=? AND "
+                        + "IFNULL(species,'')=IFNULL(?, '') AND IFNULL(pathovar,'')=IFNULL(?, '')")) {
+                ps.setString(1, name);
+                ps.setString(2, sp.species);
+                ps.setString(3, sp.pathovar);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
+                }
+            }
+            return null;
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+              "SELECT id FROM taxonomy WHERE name=?")) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private String buildTaxonName(String raw, TaxonParts sp) {
+        if (sp != null && sp.species != null) {
+            if (sp.pathovar != null && !sp.pathovar.isEmpty()) {
+                return sp.species + " pv. " + sp.pathovar;
+            }
+            return sp.species;
+        }
+        if (raw != null && !raw.trim().isEmpty()) {
+            return raw.trim();
+        }
+        return "unknown";
+    }
+
+    private String deriveTaxonRank(String raw, TaxonParts sp) {
+        if (sp != null) {
+            if (sp.pathovar != null && !sp.pathovar.isEmpty()) {
+                return "pathovar";
+            }
+            if (sp.species != null && !sp.species.isEmpty()) {
+                return "species";
+            }
+        }
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        String[] tokens = trimmed.split("\\s+");
+        if (tokens.length == 1 && tokens[0].equalsIgnoreCase("xanthomonas")) {
+            return "genus";
+        }
+        if (tokens.length >= 2 && tokens[0].equalsIgnoreCase("xanthomonas")
+              && (tokens[1].equalsIgnoreCase("sp.") || tokens[1].equalsIgnoreCase("sp"))) {
+            return "genus";
+        }
+        return null;
+    }
 }

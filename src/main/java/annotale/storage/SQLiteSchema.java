@@ -36,17 +36,10 @@ public class SQLiteSchema {
 
         ensureColumn(conn, "repeat", "masked_seq_1", "TEXT");
         ensureColumn(conn, "repeat", "masked_seq_2", "TEXT");
-        ensureColumn(conn, "tale", "accession_id", "INTEGER");
-        ensureColumn(conn, "tale", "name_short", "TEXT");
-        ensureColumn(conn, "tale", "name_suffix", "TEXT");
+        ensureColumn(conn, "tale", "legacy_name", "TEXT");
+        ensureColumn(conn, "tale", "assembly_id", "INTEGER");
         ensureColumn(conn, "tale", "is_pseudo", "INTEGER");
-        ensureColumn(conn, "tale", "strain_id", "INTEGER");
-        ensureColumn(conn, "accession", "replicon_type", "TEXT");
-        ensureColumn(conn, "accession", "strain_id", "INTEGER");
-        ensureColumn(conn, "strain", "species", "TEXT");
-        ensureColumn(conn, "strain", "pathovar", "TEXT");
-        ensureColumn(conn, "strain", "geo_tag", "TEXT");
-        ensureColumn(conn, "strain", "tax_id", "INTEGER");
+        ensureColumn(conn, "samples", "collection_date", "TEXT");
 
         try (Statement st = conn.createStatement()) {
             st.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (" + SCHEMA_VERSION + ")");

@@ -40,6 +40,7 @@ import projects.tals.TALgetterDiffSM;
 import annotale.BuildFamilies;
 import annotale.TALE;
 import annotale.TALEFamilyBuilder;
+import annotale.storage.TALEFamilyBuilderLoader;
 import annotale.BuildFamilies.FamilyResult;
 import annotale.TALEFamilyBuilder.FamilyIdGenerator;
 import annotale.TALEFamilyBuilder.TALEFamily;
@@ -244,8 +245,8 @@ public class ClassAssignmentTool implements JstacsTool {
         progress.setLast(1.0);
         progress.setCurrent(0.0);
 
-        TALEFamilyBuilder builder = new TALEFamilyBuilder(new StringBuffer(
-              ((FileParameter) parameters.getParameterAt(0)).getFileContents().getContent()));
+        TALEFamilyBuilder builder = TALEFamilyBuilderLoader.load(
+              ((FileParameter) parameters.getParameterAt(0)).getFileContents());
         TALE[] newttales = null;
         try {
             newttales = ClassBuilderTool.readProteinTALEs(

@@ -49,6 +49,7 @@ import projects.tals.TBSScanner;
 import annotale.RVDAlphabetContainer;
 import annotale.TALE;
 import annotale.TALEFamilyBuilder;
+import annotale.storage.TALEFamilyBuilderLoader;
 import annotale.TALEFamilyBuilder.TALEFamily;
 
 
@@ -146,9 +147,9 @@ public class PredictAndIntersectTargetsTool implements JstacsTool {
             sbs = new StringBuffer[]{sb};
         } else {
 
-            TALEFamilyBuilder builder = new TALEFamilyBuilder(new StringBuffer(
+            TALEFamilyBuilder builder = TALEFamilyBuilderLoader.load(
                   ((FileParameter) ((ParameterSet) selPar.getValue()).getParameterAt(
-                        0)).getFileContents().getContent()));
+                        0)).getFileContents());
 
             TALEFamily[] fams = builder.getFamilies();
             Arrays.sort(fams);

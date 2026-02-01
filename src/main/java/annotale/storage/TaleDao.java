@@ -37,22 +37,24 @@ public class TaleDao {
             raw = "unknown";
         }
         TaxonParts sp = parseTaxon(raw);
-        int taxonId = upsertTaxonomy(raw, sp);
+        int taxonId = upsertTaxonomyLegacy(raw, sp);
         Integer existing = findSampleIdByLegacyName(raw);
         if (existing != null) {
             updateSampleDetails(existing, sp, taxonId);
             return existing;
         }
         try (PreparedStatement ps = conn.prepareStatement(
-              "INSERT INTO samples(legacy_strain_name, strain_name, geo_tag, collection_date, biosample_id, taxon_id) "
-                    + "VALUES (?,?,?,?,?,?)",
+              "INSERT INTO samples(biosample_id, legacy_strain_name, strain_name, geo_tag, collection_date, "
+                    + "legacy_taxon_id, taxon_id) "
+                    + "VALUES (?,?,?,?,?,?,?)",
               Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, raw);
-            ps.setString(2, sp == null ? null : sp.strain);
+            ps.setObject(1, null);
+            ps.setString(2, raw);
             ps.setObject(3, null);
             ps.setObject(4, null);
             ps.setObject(5, null);
             ps.setInt(6, taxonId);
+            ps.setObject(7, null);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
@@ -79,12 +81,10 @@ public class TaleDao {
     private void updateSampleDetails(int sampleId, TaxonParts sp, int taxonId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
               "UPDATE samples SET "
-                    + "strain_name=COALESCE(strain_name, ?), "
-                    + "taxon_id=COALESCE(taxon_id, ?) "
+                    + "legacy_taxon_id=COALESCE(legacy_taxon_id, ?) "
                     + "WHERE id=?")) {
-            ps.setObject(1, sp == null ? null : sp.strain);
-            ps.setInt(2, taxonId);
-            ps.setInt(3, sampleId);
+            ps.setInt(1, taxonId);
+            ps.setInt(2, sampleId);
             ps.executeUpdate();
         }
     }
@@ -146,22 +146,32 @@ public class TaleDao {
             if (existing != null) {
                 return existing;
             }
-            return insertAssembly(null, null, null, sampleId);
+            return insertAssembly(null, null, null, null, sampleId);
         }
         AccessionParts parts = splitAccession(raw);
-        Integer existing = findAssemblyIdByAccession(parts.name, parts.version);
+        Integer existing = findAssemblyIdByAccession(parts.name, parts.version, sampleId);
         if (existing != null) {
-            updateAssemblySample(existing, sampleId);
             return existing;
         }
-        return insertAssembly(parts.name, parts.version, null, sampleId);
+        Integer orphan = findAssemblyIdByAccession(parts.name, parts.version, null);
+        if (orphan != null) {
+            updateAssemblySample(orphan, sampleId);
+            return orphan;
+        }
+        String accessionType = inferAccessionType(parts.name);
+        return insertAssembly(parts.name, parts.version, accessionType, null, sampleId);
     }
 
-    private Integer findAssemblyIdByAccession(String name, String version) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(
-              "SELECT id FROM assembly WHERE accession=? AND version=?")) {
+    private Integer findAssemblyIdByAccession(String name, String version, Integer sampleId) throws SQLException {
+        String sql = sampleId == null
+              ? "SELECT id FROM assembly WHERE accession=? AND version=? AND sample_id IS NULL"
+              : "SELECT id FROM assembly WHERE accession=? AND version=? AND sample_id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
             ps.setString(2, version);
+            if (sampleId != null) {
+                ps.setInt(3, sampleId);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1);
@@ -184,15 +194,17 @@ public class TaleDao {
         return null;
     }
 
-    private int insertAssembly(String accession, String version, String repliconType, int sampleId)
+    private int insertAssembly(String accession, String version, String accessionType, String repliconType, int sampleId)
           throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
-                     "INSERT INTO assembly(accession, version, replicon_type, sample_id) VALUES (?,?,?,?)",
+                     "INSERT INTO assembly(accession, version, accession_type, replicon_type, sample_id) "
+                           + "VALUES (?,?,?,?,?)",
                      Statement.RETURN_GENERATED_KEYS)) {
             ps.setObject(1, accession);
             ps.setObject(2, version);
-            ps.setObject(3, repliconType);
-            ps.setInt(4, sampleId);
+            ps.setObject(3, accessionType);
+            ps.setObject(4, repliconType);
+            ps.setInt(5, sampleId);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
@@ -210,6 +222,17 @@ public class TaleDao {
             ps.setInt(2, assemblyId);
             ps.executeUpdate();
         }
+    }
+
+    private String inferAccessionType(String accession) {
+        if (accession == null) {
+            return null;
+        }
+        String trimmed = accession.trim().toUpperCase();
+        if (trimmed.startsWith("GCA_") || trimmed.startsWith("GCF_")) {
+            return "assembly";
+        }
+        return "nuccore";
     }
 
     private String buildSequenceString(TALE tale) {
@@ -242,6 +265,9 @@ public class TaleDao {
 
     private AccessionParts splitAccession(String raw) {
         String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return new AccessionParts("", "");
+        }
         int dot = trimmed.lastIndexOf('.');
         if (dot > 0 && dot < trimmed.length() - 1) {
             String base = trimmed.substring(0, dot);
@@ -279,6 +305,7 @@ public class TaleDao {
     private boolean isPseudoName(String raw) {
         return raw != null && raw.toLowerCase().contains("(pseudo)");
     }
+
 
     private TaxonParts parseTaxon(String raw) {
         if (raw == null) {
@@ -436,22 +463,21 @@ public class TaleDao {
         }
     }
 
-    private int upsertTaxonomy(String raw, TaxonParts sp) throws SQLException {
+    private int upsertTaxonomyLegacy(String raw, TaxonParts sp) throws SQLException {
         String name = buildTaxonName(raw, sp);
         String rank = deriveTaxonRank(raw, sp);
-        Integer existing = findTaxonomyId(name, sp);
+        Integer existing = findLegacyTaxonomyId(name, sp);
         if (existing != null) {
             return existing;
         }
         try (PreparedStatement ps = conn.prepareStatement(
-              "INSERT INTO taxonomy(ncbi_tax_id, rank, name, species, pathovar) "
-                    + "VALUES (?,?,?,?,?)",
+              "INSERT INTO taxonomy_legacy(rank, name, species, pathovar) "
+                    + "VALUES (?,?,?,?)",
               Statement.RETURN_GENERATED_KEYS)) {
-            ps.setObject(1, null);
-            ps.setObject(2, rank);
-            ps.setString(3, name);
-            ps.setObject(4, sp == null ? null : sp.species);
-            ps.setObject(5, sp == null ? null : sp.pathovar);
+            ps.setObject(1, rank);
+            ps.setString(2, name);
+            ps.setObject(3, sp == null ? null : sp.species);
+            ps.setObject(4, sp == null ? null : sp.pathovar);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
@@ -462,10 +488,10 @@ public class TaleDao {
         }
     }
 
-    private Integer findTaxonomyId(String name, TaxonParts sp) throws SQLException {
+    private Integer findLegacyTaxonomyId(String name, TaxonParts sp) throws SQLException {
         if (sp != null && sp.species != null) {
             try (PreparedStatement ps = conn.prepareStatement(
-                  "SELECT id FROM taxonomy WHERE name=? AND "
+                  "SELECT id FROM taxonomy_legacy WHERE name=? AND "
                         + "IFNULL(species,'')=IFNULL(?, '') AND IFNULL(pathovar,'')=IFNULL(?, '')")) {
                 ps.setString(1, name);
                 ps.setString(2, sp.species);
@@ -479,7 +505,7 @@ public class TaleDao {
             return null;
         }
         try (PreparedStatement ps = conn.prepareStatement(
-              "SELECT id FROM taxonomy WHERE name=?")) {
+              "SELECT id FROM taxonomy_legacy WHERE name=?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

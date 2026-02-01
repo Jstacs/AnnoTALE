@@ -1,34 +1,47 @@
-CREATE TABLE IF NOT EXISTS taxonomy (
+CREATE TABLE IF NOT EXISTS taxonomy_legacy (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  ncbi_tax_id INTEGER UNIQUE,
   rank TEXT,
   name TEXT NOT NULL,
   species TEXT,
   pathovar TEXT
 );
 
+CREATE TABLE IF NOT EXISTS taxonomy (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ncbi_tax_id INTEGER UNIQUE NOT NULL,
+  rank TEXT,
+  raw_name TEXT,
+  species TEXT,
+  pathovar TEXT,
+  parent_id INTEGER,
+  FOREIGN KEY (parent_id) REFERENCES taxonomy(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS samples (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  biosample_id TEXT UNIQUE,
   legacy_strain_name TEXT,
   strain_name TEXT,
   geo_tag TEXT,
   collection_date TEXT,
-  biosample_id TEXT UNIQUE,
-  taxon_id INTEGER NOT NULL,
-  FOREIGN KEY (taxon_id) REFERENCES taxonomy(id) ON DELETE RESTRICT
+  legacy_taxon_id INTEGER,
+  taxon_id INTEGER,
+  FOREIGN KEY (legacy_taxon_id) REFERENCES taxonomy_legacy(id) ON DELETE SET NULL,
+  FOREIGN KEY (taxon_id) REFERENCES taxonomy(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS assembly (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   accession TEXT,
   version TEXT,
+  accession_type TEXT,
   replicon_type TEXT,
   sample_id INTEGER,
   FOREIGN KEY (sample_id) REFERENCES samples(id) ON DELETE SET NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_assembly_accession
-ON assembly(accession, version)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_assembly_accession_sample
+ON assembly(accession, version, sample_id)
 WHERE accession IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_assembly_local_per_sample
@@ -118,8 +131,10 @@ CREATE TABLE IF NOT EXISTS data_version (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+
 DROP TABLE IF EXISTS metadata;
 DROP TABLE IF EXISTS strain;
 DROP TABLE IF EXISTS accession;
 DROP TABLE IF EXISTS family;
 DROP TABLE IF EXISTS family_member;
+DROP INDEX IF EXISTS uq_assembly_accession;

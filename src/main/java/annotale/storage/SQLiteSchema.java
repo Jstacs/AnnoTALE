@@ -39,10 +39,22 @@ public class SQLiteSchema {
         ensureColumn(conn, "tale", "legacy_name", "TEXT");
         ensureColumn(conn, "tale", "assembly_id", "INTEGER");
         ensureColumn(conn, "tale", "is_pseudo", "INTEGER");
+        ensureColumn(conn, "samples", "legacy_strain_name", "TEXT");
+        ensureColumn(conn, "samples", "strain_name", "TEXT");
         ensureColumn(conn, "samples", "collection_date", "TEXT");
+        ensureColumn(conn, "samples", "legacy_taxon_id", "INTEGER");
+        ensureColumn(conn, "samples", "taxon_id", "INTEGER");
+        ensureColumn(conn, "assembly", "accession_type", "TEXT");
+        ensureColumn(conn, "taxonomy", "rank", "TEXT");
+        ensureColumn(conn, "taxonomy", "raw_name", "TEXT");
+        ensureColumn(conn, "taxonomy", "parent_id", "INTEGER");
 
         try (Statement st = conn.createStatement()) {
             st.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (" + SCHEMA_VERSION + ")");
+            st.execute("UPDATE samples SET legacy_strain_name=COALESCE(legacy_strain_name, strain_name) "
+                  + "WHERE legacy_strain_name IS NULL AND strain_name IS NOT NULL");
+            st.execute("UPDATE samples SET strain_name=NULL "
+                  + "WHERE legacy_strain_name IS NOT NULL AND strain_name=legacy_strain_name");
         }
     }
 

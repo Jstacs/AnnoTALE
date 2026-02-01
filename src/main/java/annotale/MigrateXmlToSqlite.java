@@ -51,7 +51,6 @@ public class MigrateXmlToSqlite {
         TALE[] tales = builder.getAllTALEs();
         System.out.println("Parsed " + tales.length + " TALEs from XML.");
 
-        // make sure database is clean
         try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath)) {
             conn.setAutoCommit(true);
             try (Statement st = conn.createStatement()) {
@@ -64,9 +63,12 @@ public class MigrateXmlToSqlite {
                 System.err.println("Refusing to overwrite existing database without --wipe.");
                 System.exit(2);
             }
+
+            // make sure the database is clean
             if (wipe) {
                 wipeDatabase(conn);
             }
+
             TaleDao taleDao = new TaleDao(conn);
             Map<String, Integer> taleIdMap = new HashMap<>();
             for (TALE tale : tales) {
@@ -242,6 +244,7 @@ public class MigrateXmlToSqlite {
             st.executeUpdate("DELETE FROM assembly");
             st.executeUpdate("DELETE FROM samples");
             st.executeUpdate("DELETE FROM taxonomy");
+            st.executeUpdate("DELETE FROM taxonomy_legacy");
             st.executeUpdate("DELETE FROM data_version");
         }
     }

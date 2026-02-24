@@ -1,6 +1,6 @@
 # AnnoTALE
 
-<img src="src/main/resources/annotale/tools/AnnoTALE.png" width="200">
+<img src="annotale/src/main/resources/annotale/tools/AnnoTALE.png" width="200">
 
 AnnoTALE is a command-line toolkit for analysing transcription activator-like effector (TALE) proteins.
 

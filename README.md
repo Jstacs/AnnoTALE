@@ -6,7 +6,7 @@ AnnoTALE is a command-line toolkit for analysing transcription activator-like ef
 
 ## Prerequisites
 
-- Java 8
+- Java 17
 - Apache Maven 3.6+
 
 - Maven downloads standard plugins from Maven Central: ensure network access for the first build.

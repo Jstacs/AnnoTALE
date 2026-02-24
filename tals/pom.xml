@@ -12,7 +12,7 @@
 
     <artifactId>tals</artifactId>
     <packaging>jar</packaging>
-    <name>AnnoTALE TALS Compatibility</name>
+    <name>AnnoTALE TALS</name>
 
     <dependencies>
         <dependency>

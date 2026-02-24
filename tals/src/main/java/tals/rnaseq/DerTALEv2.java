@@ -11,7 +11,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
-import projects.gemoma.ExtractRNAseqEvidence.Stranded;
+import tals.Stranded;
 import tals.prediction.QuickTBSPredictionTool;
 import umontreal.ssj.probdist.FisherFDist;
 import de.jstacs.DataType;

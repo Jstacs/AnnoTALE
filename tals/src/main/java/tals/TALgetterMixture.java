@@ -30,7 +30,7 @@ import de.jstacs.io.XMLParser;
 import de.jstacs.sequenceScores.statisticalModels.differentiable.AbstractDifferentiableStatisticalModel;
 import de.jstacs.utils.DoubleList;
 import de.jstacs.utils.IntList;
-import de.jtem.numericalMethods.calculus.specialFunctions.Gamma;
+import org.apache.commons.math3.special.Gamma;
 
 /**
  * Class for the mixture component of TALgetter.
@@ -133,7 +133,7 @@ public class TALgetterMixture extends AbstractDifferentiableStatisticalModel{
 		double[] logBeta=new double[params.length];
 		double logPrior=0;
 		for(int c=0;c<params.length-1;c++){
-			logBeta[c]=( Gamma.logOfGamma( HyperParams[c] ) + Gamma.logOfGamma( HyperSum[c] - HyperParams[c] ) ) - Gamma.logOfGamma( HyperSum[c] );
+			logBeta[c]=( Gamma.logGamma( HyperParams[c] ) + Gamma.logGamma( HyperSum[c] - HyperParams[c] ) ) - Gamma.logGamma( HyperSum[c] );
 			logPrior+= HyperParams[c]*Math.log( probs[c] ) + (HyperSum[c] - HyperParams[c])*Math.log1p( -probs[c] );
 			logPrior -= logBeta[c];
 		}

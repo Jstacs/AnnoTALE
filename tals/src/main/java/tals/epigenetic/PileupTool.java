@@ -16,9 +16,9 @@ import de.jstacs.tools.ProgressUpdater;
 import de.jstacs.tools.Protocol;
 import de.jstacs.tools.ToolParameterSet;
 import de.jstacs.tools.ToolResult;
-import projects.encodedream.ObjectStream;
-import projects.encodedream.Pileup;
-import projects.encodedream.Pileup.Pile;
+import tals.ObjectStream;
+import tals.Pileup;
+import tals.Pileup.Pile;
 
 public class PileupTool implements JstacsTool {
 

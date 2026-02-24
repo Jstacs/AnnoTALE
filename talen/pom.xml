@@ -12,7 +12,7 @@
 
     <artifactId>talen</artifactId>
     <packaging>jar</packaging>
-    <name>AnnoTALE TALEN Compatibility</name>
+    <name>AnnoTALE TALEN</name>
 
     <dependencies>
         <dependency>

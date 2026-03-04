@@ -32,3 +32,8 @@ build/
 src/dist/
 target/
 .m2repo/
+
+# Local data things
+*.xml
+*.db
+*.db-journal

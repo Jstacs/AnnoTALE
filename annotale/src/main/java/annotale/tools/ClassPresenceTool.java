@@ -48,6 +48,7 @@ import de.jstacs.utils.graphics.GraphicsAdaptor;
 import annotale.TALE;
 import annotale.TALEAligner;
 import annotale.TALEFamilyBuilder;
+import annotale.storage.TALEFamilyBuilderLoader;
 import annotale.TALEFamilyBuilder.TALEFamily;
 
 public class ClassPresenceTool implements JstacsTool {
@@ -107,8 +108,8 @@ public class ClassPresenceTool implements JstacsTool {
         progress.setCurrent(0.0);
         protocol.append("Loading class builder.\n");
 
-        final TALEFamilyBuilder builder = new TALEFamilyBuilder(new StringBuffer(
-              ((FileParameter) parameters.getParameterAt(0)).getFileContents().getContent()));
+        final TALEFamilyBuilder builder = TALEFamilyBuilderLoader.load(
+              ((FileParameter) parameters.getParameterAt(0)).getFileContents());
         progress.setCurrent(0.4);
 
         double height2 = Double.MAX_VALUE;

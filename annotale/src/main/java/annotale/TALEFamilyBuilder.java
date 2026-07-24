@@ -123,6 +123,12 @@ public class TALEFamilyBuilder implements Storable {
 
         }
 
+        private TALEFamily(String familyId, ClusterTree<TALE> tree, StringAlignment[][] alignments) {
+            this.tree = tree;
+            this.id = familyId;
+            this.alignments = alignments;
+        }
+
         public TALEFamily(StringBuffer xml) throws NonParsableException {
             xml = XMLParser.extractForTag(xml, "TALEClass");
             alignments = (StringAlignment[][]) XMLParser.extractObjectForTags(xml, "alignments");
@@ -893,6 +899,14 @@ public class TALEFamilyBuilder implements Storable {
 
     }
 
+    public static TALEFamily createFamily(String familyId, ClusterTree<TALE> tree, TALEFamilyBuilder builder) {
+        return new TALEFamily(familyId, tree, builder);
+    }
+
+    public static TALEFamily createFamily(String familyId, ClusterTree<TALE> tree, StringAlignment[][] alignments) {
+        return new TALEFamily(familyId, tree, alignments);
+    }
+
     private TALEFamily[] families;
     private double[][] dmat;
     //private ClusterTree<TALE> familyTree;
@@ -982,6 +996,20 @@ public class TALEFamilyBuilder implements Storable {
 
         this.families = list.toArray(new TALEFamily[0]);
 
+    }
+
+    public TALEFamilyBuilder(Costs costs, Linkage linkage, AlignmentType at,
+          double extraGapOpening, double extraGapExtension, double cut, double pval,
+          String[] reservedNames, double[][] dmat) {
+        this.pval = pval;
+        this.at = at;
+        this.costs = costs;
+        this.cut = cut;
+        this.extraGapExtension = extraGapExtension;
+        this.extraGapOpening = extraGapOpening;
+        this.linkage = linkage;
+        this.reservedNames = reservedNames;
+        this.dmat = dmat;
     }
 
     private static int getMaximumTALELength(ClusterTree<TALE> tree) {
@@ -1729,6 +1757,10 @@ public class TALEFamilyBuilder implements Storable {
         return this.families;
     }
 
+    public void setFamilies(TALEFamily[] families) {
+        this.families = families;
+    }
+
 
     public String[] getReservedNames() {
         return reservedNames;
@@ -1741,6 +1773,10 @@ public class TALEFamilyBuilder implements Storable {
 
     public Costs getCosts() {
         return costs;
+    }
+
+    public Linkage getLinkage() {
+        return linkage;
     }
 
     public double getPVal() {

@@ -94,6 +94,11 @@ public class TALE implements Storable {
             this.repeat = repeat;
         }
 
+        public Repeat(Sequence repeat, String rvd) {
+            this.repeat = repeat;
+            this.rvd = rvd;
+        }
+
         public Type getType() {
             if (this.repeat != null && this.repeat.getAlphabetContainer()
                     .checkConsistency(Translator.DEFAULT.getProteinAlphabet())) {
@@ -283,6 +288,11 @@ public class TALE implements Storable {
         }
     }
 
+    public void setAnnotation(String strain, String accession, Integer startPos, Integer endPos,
+                              Boolean strand) {
+        addAnnotation(strain, accession, startPos, endPos, strand);
+    }
+
     public void setStrain(String strain) {
         this.strain = strain;
         if (dnaOriginal != null) {
@@ -351,7 +361,7 @@ public class TALE implements Storable {
     }
 
 
-    private void setDnaOriginal(TALE dnaOriginal) {
+    public void setDnaOriginal(TALE dnaOriginal) {
         this.dnaOriginal = dnaOriginal;
     }
 

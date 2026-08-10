@@ -22,3 +22,4 @@ public class TaleDaoTest {
         assertEquals("12-2", TaleDao.parseStrain("Xanthomonas citri pv. glycines str. 12-2"));
     }
 }
+
